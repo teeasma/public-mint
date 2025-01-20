@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>NFT Mint</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
+    <style>
+      .container {
+        padding: 20px;
+        text-align: center;
+      }
+      .mint-button {
+        background: var(--tg-theme-button-color, #2481cc);
+        color: var(--tg-theme-button-text-color, #ffffff);
+        border: none;
+        padding: 12px 20px;
+        border-radius: 8px;
+        cursor: pointer;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h2>NFT</h2>
+      <img id="previewImage" class="preview-image" src="" alt="Your NFT" />
+      <p>Price: 0.000000069 ETH</p>
+      <button id="mintButton" class="mint-button">Pay to Mint</button>
+    </div>
+
+    <script>
+      const webapp = window.Telegram.WebApp;
+      webapp.ready();
+
+      const PAYMENT_ADDRESS = "0xAEaa93fb9B3769EF390a9258B1550723E83E6bcB"; // Address to collect payments
+      const urlParams = new URLSearchParams(window.location.search);
+      const imageUrl = urlParams.get("imageUrl");
+      const messageId = urlParams.get("messageId");
+      const prompt = urlParams.get("prompt");
+
+      // Set preview image
+      document.getElementById("previewImage").src = imageUrl;
+
+      async function handleMint() {
+        try {
+          const provider = new ethers.providers.Web3Provider(window.ethereum);
+          const accounts = await provider.send("eth_requestAccounts", []);
+          const signer = provider.getSigner();
+
+          // Send payment transaction
+          const tx = await signer.sendTransaction({
+            to: PAYMENT_ADDRESS,
+            value: ethers.utils.parseEther("0.000000069"),
+          });
+
+          // Wait for confirmation
+          await tx.wait();
+
+          // Send data back to Telegram
+          webapp.sendData(
+            JSON.stringify({
+              paymentTx: tx.hash,
+              userAddress: accounts[0],
+              messageId: messageId,
+            })
+          );
+
+          webapp.close();
+        } catch (error) {
+          console.error("Error:", error);
+          alert("Error: " + error.message);
+        }
+      }
+
+      document.getElementById("mintButton").onclick = handleMint;
+    </script>
+  </body>
+</html>
